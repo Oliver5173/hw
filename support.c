@@ -3,6 +3,7 @@
 #include <time.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 //declarations;
 char *promptLine(void);
@@ -12,7 +13,8 @@ char **getCommandArgs(char*,int*);
 void echo(char**, int);
 void exit(void);
 void pwd(void);
-
+void ls(char**, int);
+void runProgram(char**);
 
 int main(void){
 	while(1){
@@ -78,14 +80,8 @@ int execCommand(char *command){
 	if(strcmp(args[0],"echo") == 0) echo(args,argv);
 	else if(strcmp(args[0],"exit") == 0) exit();
 	else if(strcmp(args[0],"pwd") == 0) pwd();
-	else if(strcmp(args[0],"\0") == 0) return 0;
-	else{
-		puts();
-		args[argv] = (char*) NULL;
-	}
-
-	for(int i = 0; i <= argv; i++) free(args[i]);
-	free(args);
+	else if(strcmp(args[0],"ls") == 0) ls(args,argv);
+	else runProgram(args);
 
 	return 1;
 }
@@ -125,4 +121,28 @@ void pwd(void){
 
 void ls(char **args, int argv){
 	return;
+}
+
+//
+void runProgram(char** args){
+	pid_t pid, wpid;
+	int *stat_loc; 
+	//create new process;
+	pid = fork();
+
+	//check process status;
+	if(pid < 0)	puts("Failed when try to create new process ");
+	//child process;
+	else if(pid == 0){
+		if(execvp(args[0], args + sizeof(char*)) == -1) puts("command not found ");
+		return;
+	}
+	//parent process;
+	else{
+		do wpid = waitpid(pid,stat_loc, WUNTRACED);
+		while (!WIFEXITED(stat_loc) && !WIFSIGNALED(stat_loc));
+	}
+
+	return;
+
 }

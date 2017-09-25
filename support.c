@@ -11,9 +11,8 @@ char *getCommandLine(void);
 int execCommand(char*);
 char **getCommandArgs(char*,int*);
 void echo(char**, int);
-void exit(void);
+void exit_sh(void);
 void pwd(void);
-void ls(char**, int);
 void runProgram(char**);
 
 int main(void){
@@ -38,7 +37,7 @@ char *promptLine(void){
 	//check memory;
 	if(!timeBuffer){
 		puts("Failed when try to allocate memory");
-		exit(0);
+		exit(EXIT_FAILURE);
 	}
 	//get current local time;
 	time(&seconds);
@@ -61,7 +60,7 @@ char *getCommandLine(void){
 	//check memory;
 	if(!buffer){
 		puts("Failed when try to allocate memory");
-		exit(0);
+		exit(EXIT_FAILURE);
 	}
 	charSize = getline(&buffer,&bufsize,stdin);
 	//delete '/n' charactor;
@@ -71,6 +70,7 @@ char *getCommandLine(void){
 }
 
 //execute command;
+//return 0 when there is no command executed.Otherwise, return 1;
 int execCommand(char *command){
 	//number of arguments;
 	int argv = 0;
@@ -78,9 +78,9 @@ int execCommand(char *command){
 	char **args = getCommandArgs(command,&argv);
 
 	if(strcmp(args[0],"echo") == 0) echo(args,argv);
-	else if(strcmp(args[0],"exit") == 0) exit();
+	else if(strcmp(args[0],"exit") == 0) exit_sh();
 	else if(strcmp(args[0],"pwd") == 0) pwd();
-	else if(strcmp(args[0],"ls") == 0) ls(args,argv);
+	else if(strcmp(args[0],"\0") == 0) return 0;
 	else runProgram(args);
 
 	return 1;
@@ -90,12 +90,19 @@ int execCommand(char *command){
 char **getCommandArgs(char *command,int *pos){
 	int bufferSize = 10;
 	const char delim[2] = " ";
-	char **args = (char**)malloc(bufferSize * sizeof(char**));
+	char **args = (char**)malloc(bufferSize * sizeof(char*));
 	if(!args){
 		puts("Failed when try to allocate memory");
 		exit(0);
 	}
 	char *arg;
+	//if no command
+	if(strlen(command) == 0){
+		arg = (char*)malloc(sizeof(char));
+		arg[0] = (char)NULL;
+		args[0] = arg;
+		return args;
+	}
 	//split command to arguments;
 	arg = strtok(command,delim);
 	while(arg != NULL){
@@ -103,7 +110,6 @@ char **getCommandArgs(char *command,int *pos){
 		*pos = *pos + 1;
 		arg = strtok(NULL, delim);
 	}
-
 	return args;
 }
 
@@ -112,16 +118,15 @@ void echo(char** args, int argv){
  	puts("");	
 }
 
-void exit(void){ exit(0);}
+void exit_sh(void){
+	exit(EXIT_SUCCESS);
+}
 
 void pwd(void){
 	char cwd[100];
    	if (getcwd(cwd, sizeof(cwd)) != NULL) fprintf(stdout, "%s\n", cwd);
 }
 
-void ls(char **args, int argv){
-	return;
-}
 
 //
 void runProgram(char** args){
@@ -129,13 +134,14 @@ void runProgram(char** args){
 	int *stat_loc; 
 	//create new process;
 	pid = fork();
-
 	//check process status;
 	if(pid < 0)	puts("Failed when try to create new process ");
 	//child process;
 	else if(pid == 0){
-		if(execvp(args[0], args + sizeof(char*)) == -1) puts("command not found ");
-		return;
+		if(execvp(args[0], args) == -1){
+			puts("command not found ");
+			exit(EXIT_FAILURE);
+		}
 	}
 	//parent process;
 	else{

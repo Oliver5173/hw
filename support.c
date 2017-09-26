@@ -16,6 +16,8 @@ void pwd(void);
 void runProgram(char**);
 
 int main(void){
+	puts("Welcome to MyShell 1.0.0");
+
 	while(1){
 		printf("%s ", promptLine());
 		char* commandline = getCommandLine();
@@ -80,8 +82,15 @@ int execCommand(char *command){
 	if(strcmp(args[0],"echo") == 0) echo(args,argv);
 	else if(strcmp(args[0],"exit") == 0) exit_sh();
 	else if(strcmp(args[0],"pwd") == 0) pwd();
-	else if(strcmp(args[0],"\0") == 0) return 0;
+	else if(strcmp(args[0],"\0") == 0) {
+		free(args);
+		return 0;
+	}
 	else runProgram(args);
+
+	//free memory;
+	free(args);
+
 
 	return 1;
 }
@@ -110,6 +119,9 @@ char **getCommandArgs(char *command,int *pos){
 		*pos = *pos + 1;
 		arg = strtok(NULL, delim);
 	}
+
+	//For exec, arguments must be terminated by a NULL pointer;
+	args[*pos] = (char*)NULL;
 	return args;
 }
 
@@ -134,18 +146,21 @@ void runProgram(char** args){
 	int *stat_loc; 
 	//create new process;
 	pid = fork();
+	
 	//check process status;
 	if(pid < 0)	puts("Failed when try to create new process ");
 	//child process;
 	else if(pid == 0){
 		if(execvp(args[0], args) == -1){
-			puts("command not found ");
+			puts("command not found");
 			exit(EXIT_FAILURE);
 		}
 	}
 	//parent process;
 	else{
-		do wpid = waitpid(pid,stat_loc, WUNTRACED);
+		do{
+			wpid = waitpid(pid,stat_loc, WUNTRACED);
+		}
 		while (!WIFEXITED(stat_loc) && !WIFSIGNALED(stat_loc));
 	}
 

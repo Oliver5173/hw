@@ -1,3 +1,7 @@
+//author : Oliver Wei;
+//Date: Sep. 26, 2017;
+//A simple shell for understanding mechanism of program processes;
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -151,6 +155,7 @@ void runProgram(char** args){
 	if(pid < 0)	puts("Failed when try to create new process ");
 	//child process;
 	else if(pid == 0){
+	//check man page for more info. about exec family;
 		if(execvp(args[0], args) == -1){
 			puts("command not found");
 			exit(EXIT_FAILURE);

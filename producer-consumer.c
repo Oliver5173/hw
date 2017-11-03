@@ -1,8 +1,9 @@
-#include<pthread.h>
-#include<signal.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<unistd.h>
+#include <pthread.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdbool.h>
 
 // materials 1,2,3
 //tools x,y,z
@@ -35,7 +36,7 @@ input_buffer* input_queue;
 void insert_material(input_buffer* buf, int materials){
 	if(buf->count != INPUT_BUFFER_SIZE){
 		if(buf->rear == -INPUT_BUFFER_SIZE) buf->rear = 0; 
-		buf->queue[--(buf->rear)] = materials
+		buf->queue[--(buf->rear)] = materials;
 		buf->count++;
 	}
 }
@@ -45,17 +46,17 @@ int get_material(input_buffer* buf){
 		if(buf->front < -INPUT_BUFFER_SIZE) buf->front = 0;
 		buf->count--;
 		buf->used++;
-		return buf->queue[(buf->front)--]
+		return buf->queue[(buf->front)--];
 	}
 	return 0;
 }
 
-bool isfull(input_buffer* buf) return buf->count == 10;
+bool isfull(input_buffer* buf) {return buf->count == 10;}
 
 
 
 
-void* generator1(void *args){
+void* generator1(){
 	while(true){
 		pthread_cond_wait(&generator_c1,&input_mutex);
 		pthread_mutex_lock(&input_mutex);
@@ -66,7 +67,8 @@ void* generator1(void *args){
 		while(isfull(input_queue)) usleep(500);
 	}
 }
-void* generator2(void *args){
+
+void* generator2(){
 	while(true){
 		pthread_cond_wait(&generator_c2,&input_mutex);
 		pthread_mutex_lock(&input_mutex);
@@ -77,7 +79,8 @@ void* generator2(void *args){
 		while(isfull(input_queue)) usleep(500);
 	}
 }
-void* generator3(void *args){
+
+void* generator3(){
 	while(true){
 		pthread_cond_wait(&generator_c3,&input_mutex);
 		pthread_mutex_lock(&input_mutex);
@@ -89,22 +92,31 @@ void* generator3(void *args){
 	}
 }
 
+void* printer(){
+	pthread_mutex_lock(&input_mutex);
+	printf("%d\n", input_queue->count);
+	pthread_mutex_unlock(&input_mutex);
+	pthread_exit(0);
+}
+
 int main(void) {
 	//initialize input queue;
 	input_queue = (input_buffer*)malloc(sizeof(input_buffer*));
-	input_buffer->front = -1;
-	input_buffer->rear = -INPUT_BUFFER_SIZE;
-	input_buffer->count = 0;
-	input_buffer->used = 0;
+	input_queue->front = -1;
+	input_queue->rear = -INPUT_BUFFER_SIZE;
+	input_queue->count = 0;
+	input_queue->used = 0;
 
-	pthread_t generator_p1,generator_p2,generator_p3;
+	pthread_t generator_p1,generator_p2,generator_p3,printer_p;
 
 	pthread_create(&generator_p1,NULL,generator1,NULL);
 	pthread_create(&generator_p1,NULL,generator2,NULL);
 	pthread_create(&generator_p1,NULL,generator3,NULL);
+	pthread_create(&printer_p, NULL, printer, NULL);
 	pthread_join(generator_p1,NULL);
 	pthread_join(generator_p2,NULL);
 	pthread_join(generator_p3,NULL);
+	pthread_join(printer_p,NULL);
 
 
 	//destroy mutex and cond;

@@ -2,7 +2,10 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
+#include <math.h>
+#define PI 3.14159265
 
+using namespace std;
 
 //#include <string>
 
@@ -10,7 +13,7 @@ typedef std::string mode;
 
 const int NumVertices = 36; //(6 faces)(2 triangles/face)(3 vertices/triangle)
 const int NumBallVertices = 342;
-const GLfloat Radians = 3.1415926 / 180.0;
+const GLfloat Radians = PI / 180.0;
 
 vec4 points[NumVertices];
 vec4 colors[NumVertices];
@@ -191,6 +194,67 @@ void sphere(){
 }
 //----------------------------------------------------------------------------
 
+//-------------
+
+bool canReach(){
+    for(int i = 0; i < 2; i++){
+        GLfloat distance_squre = pow(ball_pos[i].x , 2) + pow(ball_pos[i].y -  BASE_HEIGHT , 2);
+        GLfloat arm_height_squre = pow(LOWER_ARM_HEIGHT + UPPER_ARM_HEIGHT , 2 );
+
+        if( distance_squre > arm_height_squre){
+            std::cout << "robot cannot reach ball" << std::endl;
+            return false;
+        }
+    }
+    return true;
+}
+
+void getball(){
+    if(canReach()){
+        float base_degree =  (atan(ball_pos[0].z  / ball_pos[0].x) * 180 / PI);
+        Axis = 0;
+        if(ball_pos[0].x > 0) Theta[Axis] = - base_degree;
+        else Theta[Axis] =  180 - base_degree;     
+
+
+        float y = abs(ball_pos[0].y - BASE_HEIGHT);
+        float alpha = atan(y / ball_pos[0].x) * 180 / PI ;
+        float theta_temp = acos(
+            ( pow(LOWER_ARM_HEIGHT, 2) + pow(ball_pos[0].x , 2) + pow(y,2) - pow(UPPER_ARM_HEIGHT , 2) ) 
+            /
+            ( 2 * LOWER_ARM_HEIGHT * pow( pow(ball_pos[0].x , 2) + pow(y,2) , 0.5 ) )
+            ) *180 / PI ;
+
+       Axis = 1;
+       if( ball_pos[0].x >= 0 ){
+            if( 90 - alpha - theta_temp >= 0){
+                
+                Theta[Axis] = - ( 90 - alpha - theta_temp );
+            }
+            else{
+                Theta[Axis] = alpha + theta_temp - 90;
+            }
+       }
+       else if(ball_pos[0].x < 0 && ball_pos[0].y >= 0){
+            Theta[Axis] = 360 - (90 - abs(alpha) - abs(theta_temp));
+       }
+       else{
+           Theta[Axis] = 360 - (180 - ((90 - abs(alpha)) + abs(theta_temp)));
+           cout << alpha <<  " " << theta_temp << endl;
+       }
+       
+
+       theta_temp = acos(
+           ( pow(LOWER_ARM_HEIGHT, 2) + pow(UPPER_ARM_HEIGHT , 2)  - (pow(ball_pos[0].x , 2) + pow(y,2) ) ) 
+            /
+            ( 2 * LOWER_ARM_HEIGHT * UPPER_ARM_HEIGHT )
+       ) * 180 / PI;
+
+       Axis = 2;
+       Theta[Axis] = - (180 - theta_temp);
+    }
+}
+//-------------
 void switchCam(void){
     if(view == "-tv"){
         //LookAt(eye,at,up);
@@ -292,7 +356,7 @@ void init(void){
     Projection = glGetUniformLocation( program, "Projection" );
 
     glEnable( GL_DEPTH );
-    //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
     glClearColor( 1.0, 1.0, 1.0, 1.0 ); 
 }
@@ -325,6 +389,7 @@ void special(int key, int x, int y){
 	        if ( Theta[Axis] < 0.0 ) Theta[Axis] += 360.0; 
             break;
     }
+    cout << Theta[Axis] << endl;
     glutPostRedisplay();
 }
 
@@ -417,12 +482,9 @@ int main( int argc, char **argv ){
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS); 
  
-    glEnable(GL_LIGHT0);
-    glEnable(GL_NORMALIZE);
-    glEnable(GL_COLOR_MATERIAL);
-    glEnable(GL_LIGHTING);  
 
     switchCam();
+    getball();
 
     glutMainLoop();
     return 0;

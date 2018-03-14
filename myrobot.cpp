@@ -7,6 +7,10 @@
 
 using namespace std;
 
+void get_move(int);
+void drop_move(int);
+void origin_move(int);
+
 //#include <string>
 
 typedef std::string mode;
@@ -20,12 +24,18 @@ vec4 colors[NumVertices];
 
 vec4 ball_vertices[NumBallVertices];
 bool ball_flag = false;
+GLfloat getBall_degree[3];
+GLfloat dropBall_degree[3];
+GLfloat origin_degree[3];
+GLfloat ball_rotation[2] = {0.0};
+
 
 vec4 ball_pos[2];
 mode view = "-sv";
 GLuint vColor;
 GLuint buffer[4];
 GLuint vao[2];
+GLfloat distance_squre[2];
 
 vec4 vertices[8] = {
     vec4( -0.5, -0.5,  0.5, 1.0 ),
@@ -59,7 +69,7 @@ const GLfloat UPPER_ARM_HEIGHT = 5.0;
 const GLfloat UPPER_ARM_WIDTH  = 0.5;
 
 // Shader transformation matrices
-mat4  model_view;
+mat4  model_view , ball_model_view;
 GLuint ModelView, Projection;
 
 // Array of rotation angles (in degrees) for each rotation axis
@@ -186,8 +196,7 @@ void lower_arm(){
 }
 
 void sphere(){
-    //model_view = mat4(1.0);
-    glUniformMatrix4fv( ModelView, 1, GL_TRUE, Projection * camView * Translate(ball_pos[0].x, ball_pos[0].y, ball_pos[0].z) * Scale(0.5,0.5,0.5));
+    glUniformMatrix4fv( ModelView, 1, GL_TRUE, Projection * camView *  ball_model_view  * Scale(0.5,0.5,0.5) );
     glBindVertexArray(0);
     glBindVertexArray(vao[1]);
     glDrawArrays( GL_LINE_LOOP, 0, NumBallVertices);
@@ -196,12 +205,13 @@ void sphere(){
 
 //-------------
 
+
 bool canReach(){
     for(int i = 0; i < 2; i++){
-        GLfloat distance_squre = pow(ball_pos[i].x , 2) + pow(ball_pos[i].y -  BASE_HEIGHT , 2);
+        distance_squre[i] = pow(ball_pos[i].x , 2) +  pow(ball_pos[i].y -  BASE_HEIGHT, 2) + pow(ball_pos[i].z , 2);
         GLfloat arm_height_squre = pow(LOWER_ARM_HEIGHT + UPPER_ARM_HEIGHT , 2 );
 
-        if( distance_squre > arm_height_squre){
+        if( distance_squre[i] > arm_height_squre){
             std::cout << "robot cannot reach ball" << std::endl;
             return false;
         }
@@ -209,51 +219,225 @@ bool canReach(){
     return true;
 }
 
-void getball(){
-    if(canReach()){
-        float base_degree =  (atan(ball_pos[0].z  / ball_pos[0].x) * 180 / PI);
+void get_move(int direction){
+    static bool flag = true;
+    if(!flag) return;
+    if(Axis > 2){
+        Theta[0] = getBall_degree[0];
+        Theta[1] = getBall_degree[1];
+        Theta[2] = getBall_degree[2];
         Axis = 0;
-        if(ball_pos[0].x > 0) Theta[Axis] = - base_degree;
-        else Theta[Axis] =  180 - base_degree;     
+        if(flag){
+            drop_move(0);
+            flag = false;
+        }
+        
+    }
+    
+    if( direction == 0 ){
+        if(Theta[Axis] < getBall_degree[Axis]){
+            get_move(1);
+        }
+        else{
+            get_move(-1);
+        }
+    }
+    else if(direction == 1){
+        if(Theta[Axis] < getBall_degree[Axis]){
+            Theta[Axis] += 1;
+            glutPostRedisplay();
+            glutTimerFunc(10, get_move, direction); 
+        }
+        else{
+            Axis++;
+            get_move(0);
+        }
+    }
+    else if(direction == -1){
+        if(Theta[Axis] > getBall_degree[Axis]){
+            Theta[Axis] -= 1;
+            glutPostRedisplay();
+            glutTimerFunc(10, get_move, direction);
+        }
+        else{
+            Axis++;
+            get_move(0);
+        }
+    }
+    return;
+}
+
+void drop_move(int direction){
+    static bool flag = true;
+    if(!flag) return;
+    if(Axis > 2){
+        Theta[0] = dropBall_degree[0];
+        Theta[1] = dropBall_degree[1];
+        Theta[2] = dropBall_degree[2];
+        Axis = 0;
+        if(flag){
+            origin_move(0);
+            flag = false;
+        }
+        
+    }
+    
+    if( direction == 0 ){
+        if(Theta[Axis] < dropBall_degree[Axis]){
+            drop_move(1);
+        }
+        else{
+            drop_move(-1);
+        }
+    }
+    else if(direction == 1){
+        if(Theta[Axis] < dropBall_degree[Axis]){
+            Theta[Axis] += 1;
+            if(Axis == 0) ball_rotation[0] += 1;
+            else{
+                ball_rotation[1] += 1;
+            }
+            glutPostRedisplay();
+            glutTimerFunc(10, drop_move, direction); 
+        }
+        else{
+            Axis++;
+            drop_move(0);
+        }
+    }
+    else if(direction == -1){
+        if(Theta[Axis] > dropBall_degree[Axis]){
+            Theta[Axis] -= 1;
+            if(Axis == 0) ball_rotation[0] -= 1;
+            else{
+                ball_rotation[1] -= 1;
+            }
+            glutPostRedisplay();
+            glutTimerFunc(10, drop_move, direction);
+        }
+        else{
+            Axis++;
+            drop_move(0);
+        }
+    }
+    return;
+}
+
+void origin_move(int direction){
+    static bool flag = true;
+    if(!flag) return;
+    if(Axis > 2){
+        Theta[0] = origin_degree[0];
+        Theta[1] = origin_degree[1];
+        Theta[2] = origin_degree[2];
+        Axis = 0;
+        flag = false;
+        return;     
+    }
+    
+    if( direction == 0 ){
+        if(Theta[Axis] < origin_degree[Axis]){
+            origin_move(1);
+        }
+        else{
+            origin_move(-1);
+        }
+    }
+    else if(direction == 1){
+        if(Theta[Axis] < origin_degree[Axis]){
+            Theta[Axis] += 1;
+            glutPostRedisplay();
+            glutTimerFunc(10, origin_move, direction); 
+        }
+        else{
+            Axis++;
+            origin_move(0);
+        }
+    }
+    else if(direction == -1){
+        if(Theta[Axis] > origin_degree[Axis]){
+            Theta[Axis] -= 1;
+            glutPostRedisplay();
+            glutTimerFunc(10, origin_move, direction);
+        }
+        else{
+            Axis++;
+            origin_move(0);
+        }
+    }
+    return;
+}
 
 
-        float y = abs(ball_pos[0].y - BASE_HEIGHT);
-        float alpha = atan(y / ball_pos[0].x) * 180 / PI ;
+void getball(){
+    Axis = 0;
+    static int i = 0;
+    GLfloat temp[3];
+    if(canReach() && ball_flag){
+        float base_degree =  (atan(ball_pos[i].z  / ball_pos[i].x) * 180 / PI);
+        if(ball_pos[i].x > 0){
+           
+            temp[0] = 360 - base_degree;
+            //Theta[Axis] = 360 - base_degree;
+        }
+        else{
+             temp[0] = 180 - base_degree;
+            //Theta[Axis] = 180 - base_degree;
+        }   
+
+        float y = abs(ball_pos[i].y - BASE_HEIGHT);
+        float alpha = atan(y / pow( pow(ball_pos[i].x , 2)  + pow(ball_pos[i].z , 2), 0.5)) * 180 / PI ;
         float theta_temp = acos(
-            ( pow(LOWER_ARM_HEIGHT, 2) + pow(ball_pos[0].x , 2) + pow(y,2) - pow(UPPER_ARM_HEIGHT , 2) ) 
+            ( pow(LOWER_ARM_HEIGHT, 2) + distance_squre[i] - pow(UPPER_ARM_HEIGHT , 2) ) 
             /
-            ( 2 * LOWER_ARM_HEIGHT * pow( pow(ball_pos[0].x , 2) + pow(y,2) , 0.5 ) )
+            ( 2 * LOWER_ARM_HEIGHT * pow( distance_squre[i] , 0.5 ) )
             ) *180 / PI ;
 
-       Axis = 1;
-       if( ball_pos[0].x >= 0 ){
+       if( ball_pos[i].x >= 0 && ball_pos[i].y - BASE_HEIGHT > 0){
             if( 90 - alpha - theta_temp >= 0){
-                
-                Theta[Axis] = - ( 90 - alpha - theta_temp );
+                 temp[1] = (- ( 90 - alpha - theta_temp ));
+                //Theta[Axis] = - ( 90 - alpha - theta_temp );
             }
             else{
-                Theta[Axis] = alpha + theta_temp - 90;
+                temp[1] = (alpha + theta_temp - 90);
+                //Theta[Axis] = alpha + theta_temp - 90;
             }
        }
-       else if(ball_pos[0].x < 0 && ball_pos[0].y >= 0){
-            Theta[Axis] = 360 - (90 - abs(alpha) - abs(theta_temp));
+       else if( ball_pos[i].x >= 0 && ball_pos[i].y - BASE_HEIGHT <= 0){
+           temp[1] = (180 + (90 - abs(alpha)) + abs(theta_temp));
+           //Theta[Axis] = 180 + (90 - abs(alpha)) + abs(theta_temp);
+       }
+       else if(ball_pos[i].x < 0 && ball_pos[i].y - BASE_HEIGHT >= 0){
+           temp[1] = (360 - (90 - abs(alpha) - abs(theta_temp)));
+           //Theta[Axis] = 360 - (90 - abs(alpha) - abs(theta_temp));
        }
        else{
-           Theta[Axis] = 360 - (180 - ((90 - abs(alpha)) + abs(theta_temp)));
-           cout << alpha <<  " " << theta_temp << endl;
+          temp[1] = (360 - (180 - ((90 - abs(alpha)) + abs(theta_temp))));
+           //Theta[Axis] = 360 - (180 - ((90 - abs(alpha)) + abs(theta_temp)));
        }
        
 
        theta_temp = acos(
-           ( pow(LOWER_ARM_HEIGHT, 2) + pow(UPPER_ARM_HEIGHT , 2)  - (pow(ball_pos[0].x , 2) + pow(y,2) ) ) 
+           ( pow(LOWER_ARM_HEIGHT, 2) + pow(UPPER_ARM_HEIGHT , 2)  - distance_squre[i] ) 
             /
             ( 2 * LOWER_ARM_HEIGHT * UPPER_ARM_HEIGHT )
        ) * 180 / PI;
 
-       Axis = 2;
-       Theta[Axis] = - (180 - theta_temp);
+       temp[2] = ( - (180 - theta_temp));
+       //Theta[Axis] = - (180 - theta_temp);
+
+       if( i == 0){
+           i++;
+           for(int j = 0; j < 3; j++) getBall_degree[j] = temp[j];
+           getball();
+       }
+       else{
+           for(int j = 0; j < 3; j++) dropBall_degree[j] = temp[j];
+           get_move(0);
+       }
     }
 }
+
 //-------------
 void switchCam(void){
     if(view == "-tv"){
@@ -280,7 +464,12 @@ void display( void ){
     model_view *= ( Translate(0.0, LOWER_ARM_HEIGHT, 0.0) * RotateZ(Theta[UpperArm]) );
     upper_arm();
 
-    if(ball_flag) sphere();
+    if(ball_flag){
+        
+        ball_model_view  =  RotateY(ball_rotation[0])  * RotateZ(ball_rotation[1]) * Translate(ball_pos[0].x, ball_pos[0].y, ball_pos[0].z);
+
+        sphere();
+    }
 
     glutSwapBuffers();
 }
@@ -356,7 +545,7 @@ void init(void){
     Projection = glGetUniformLocation( program, "Projection" );
 
     glEnable( GL_DEPTH );
-    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+    //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
     glClearColor( 1.0, 1.0, 1.0, 1.0 ); 
 }
@@ -389,7 +578,6 @@ void special(int key, int x, int y){
 	        if ( Theta[Axis] < 0.0 ) Theta[Axis] += 360.0; 
             break;
     }
-    cout << Theta[Axis] << endl;
     glutPostRedisplay();
 }
 
@@ -438,6 +626,12 @@ void keyboard( unsigned char key, int x, int y ){
             else view = "-sv";
             switchCam();
             break;
+        case 'r':
+            getball();
+            for(int k = 0; k < 3; k++){
+                origin_degree[k] = Theta[k];
+            }
+            break;
     }
     
 }
@@ -482,9 +676,7 @@ int main( int argc, char **argv ){
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS); 
  
-
     switchCam();
-    getball();
 
     glutMainLoop();
     return 0;

@@ -122,3 +122,7 @@ Vector4 ForwardKinematic::computeLocalQuaternion(Joint* joint)
 Vector4 q(0.0f, 0.0f, 0.0f, 0.0f);
 	q = quaternionMultiplication(joint->parent->Globalquat, localQuat);
 	return q;
+Vector4 pos(0.0f, 0.0f, 0.0f, 0.0f);
+	pos = joint->parent->GlobalPos + joint->Globalquat * joint->LocalPos;
+
+	return pos;

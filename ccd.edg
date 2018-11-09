@@ -1,0 +1,30 @@
+Joint* currentJoint = endEffector->parent;
+	Vector3 toEnd ,toTarget;
+	while (currentJoint != nullptr )
+	{
+		toEnd.x = endEffector->GlobalPos.x - currentJoint->GlobalPos.x;
+		toEnd.y = endEffector->GlobalPos.y - currentJoint->GlobalPos.y;
+		toEnd.z = endEffector->GlobalPos.z - currentJoint->GlobalPos.z;
+		toEnd = toEnd.normalize();
+
+		toTarget.x = target->x - currentJoint->GlobalPos.x;
+		toTarget.y = target->y - currentJoint->GlobalPos.y;
+		toTarget.z = target->z - currentJoint->GlobalPos.z;
+		toTarget = toTarget.normalize();
+
+		float dotproduct = toEnd.dot(toTarget);
+		if (dotproduct >= 1) return;
+		float theta = acos(dotproduct);
+		//std::cout << theta << "\t"<< toEnd  << "\t" << toTarget << "\t" << toEnd.dot(toTarget)  <<std::endl;
+		Vector3 r_axis = toEnd.cross(toTarget);
+		r_axis = r_axis.normalize();
+		Vector4 quaternion = forwardKinematcis->buildQuaternionRotation(theta/degree2rad, r_axis.x, r_axis.y, r_axis.z);
+		currentJoint->Globalquat = forwardKinematcis->quaternionMultiplication(currentJoint->Globalquat, quaternion);
+		forwardKinematcis->forwardKinematicsComputation(currentJoint);
+
+		if (currentJoint == base) 
+		{
+			break;
+		}
+		currentJoint = currentJoint->parent;
+	}

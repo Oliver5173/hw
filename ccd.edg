@@ -1,4 +1,42 @@
-Joint* currentJoint = endEffector->parent;
+#include "InverseKinematics.h"
+
+float degree2rad = 3.141592658f / 180.0f;
+
+//IK workflow
+void InverseKinematics::IK() {
+
+	//check if the endeffector and the target are close enough
+	Vector3 endPos = Vector3(endEffector->GlobalPos.x, endEffector->GlobalPos.y, endEffector->GlobalPos.z);
+	Vector3 tarPos = Vector3(target->x, target->y, target->z);
+
+	int i = 0;
+	while ((endPos - tarPos).length() > threshold && i < iterNum)
+	{
+		if (mode == 0) 
+		{
+			CCDMode();
+		}
+		else if (mode == 1)
+		{
+			JacobianMode();
+		}
+		endPos = Vector3(endEffector->GlobalPos.x, endEffector->GlobalPos.y, endEffector->GlobalPos.z);
+		i++;
+	}
+}
+
+//CCD Mode IK for right arm
+void InverseKinematics::CCDMode()
+{
+	//add your code here
+	//hint: Do forward kinematics when the endeffector's global position need to be updated
+	//with newly computed quaternions. 
+	
+	//I.e., use forwardKinematcis->forwardKinematicsComputation(base) 
+	//whenever you need to update endeffector's global position.
+
+	//calclate from second last eddEffector to base
+	Joint* currentJoint = endEffector->parent;
 	Vector3 toEnd ,toTarget;
 	while (currentJoint != nullptr )
 	{
@@ -28,3 +66,68 @@ Joint* currentJoint = endEffector->parent;
 		}
 		currentJoint = currentJoint->parent;
 	}
+}
+
+//Entire Right Arm Jacobian IK
+void InverseKinematics::JacobianMode()
+{
+	//J[3,4]
+	//each row J = [Rx * (EndPos - joint),...]
+	//deltaO = JtV
+	//V - changes of spatial location;
+	//initialization
+	Joint* currentJoint = endEffector->parent;
+	Eigen::MatrixXf J(3, 4),Rx(3,4);
+	Eigen::Vector3f V;
+	Vector3 temp;
+	int col_idx = 0;
+	temp.x = target->x - endEffector->GlobalPos.x;
+	temp.y = target->y - endEffector->GlobalPos.y;
+	temp.z = target->z - endEffector->GlobalPos.z;
+	V.x = temp.x;
+	V.y = temp.y;
+	V.z = temp.z;
+	while (currentJoint != nullptr) 
+	{
+		Eigen::Vector3f toTarget(
+			target->x - currentJoint->GlobalPos.x,
+			target->y - currentJoint->GlobalPos.y,
+			target->z - currentJoint->GlobalPos.z),
+			toEnd(
+			endEffector->GlobalPos.x - currentJoint->GlobalPos.x,
+			endEffector->GlobalPos.y - currentJoint->GlobalPos.y,
+			endEffector->GlobalPos.z - currentJoint->GlobalPos.z);
+		toTarget = toTarget.normalized();
+		toEnd = toEnd.normalized();
+		Eigen::Vector3f r_axis = toEnd.cross(toTarget);
+		r_axis = r_axis.normalized();
+		Rx.col(col_idx) = r_axis;
+		J.col(col_idx) = r_axis.cross(toEnd);
+		col_idx++;
+		if (currentJoint == base)
+		{
+			break;
+		}
+		currentJoint = currentJoint->parent;
+	}
+	//Pseudoinverse
+	J = J.transpose();
+	J *= (J.transpose() * J).inverse();
+	Eigen::Vector4f deltaO;
+	deltaO = J * V;
+
+	currentJoint = endEffector->parent;
+	int i = 0;
+	float angle = 0;
+	while (currentJoint != nullptr) 
+	{
+		float theta = deltaO[i];
+		angle += theta;
+		Eigen::Vector3f r_axis = Rx.col(i);
+		Vector4 quaternion = forwardKinematcis->buildQuaternionRotation(angle, r_axis.x, r_axis.y, r_axis.z);
+		currentJoint->Globalquat = forwardKinematcis->quaternionMultiplication(currentJoint->Globalquat, quaternion);
+	}
+}
+
+
+

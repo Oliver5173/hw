@@ -11,6 +11,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Scanner;
 
+/**
+ * TokimonSupport class contains functions for
+ * reading Tokimon teams from json files and 
+ * generating results from Tokimon team information.
+ */
 public class TokimonSupport {
     public static void getTokimonFormFiles(File directory, ArrayList<TokimonTeam> teams){
         //will keep directory and .json files

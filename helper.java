@@ -4,7 +4,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 
-
+/**
+ * Helper class's data includes Tokimon bojects, 
+ * title, options and a scanner for user input.
+ * Helper class supports displaying main menu and 
+ * performing the functionalities of options in 
+ * the main menu.
+ */
 public class Helper {
     private ArrayList<Tokimon> tokens;
     private String title;

@@ -8,9 +8,12 @@ import java.util.Scanner;
 
 /*
    Author: Xin Wei
-   Tokimon Processor is used to analyze Tokimon data
+   TokimonProcessor class contains the main fuction 
+   of the project, getTokimonFormFiles and getTeams 
+   functions. It supports analyzing Tokimon team 
+   information from a JSON file and outputting a csv
+   file which contains data analyzed.
    Input: tokimon data path and out data path
-   Output: a csv file which contains analysis data
 */
 public class TokimonProcessor {
 

@@ -77,38 +77,17 @@ void* udpListener(void* arg)
 		if(strcmp(recvBuffer, HELP) == 0)
 		{
 			sprintf(sendBuffer, "Accepted command examples:\n");
-			strcat(sendBuffer, "count\t\t\t-- display number arrays sorted.\n");
-			strcat(sendBuffer, "get length\t\t\t-- display length of array currently being sorted.\n");
-			strcat(sendBuffer, "get array\t\t\t-- display the full array being sorted.\n");
-			strcat(sendBuffer, "get 10\t\t\t-- display the tenth element of array currently being sorted.\n");
-			strcat(sendBuffer, "stop\t\t\t-- cause the server program to end.\n");
+			strcat(sendBuffer, "count        -- display number arrays sorted.\n");
+			strcat(sendBuffer, "get length   -- display length of array currently being sorted.\n");
+			strcat(sendBuffer, "get array    -- display the full array being sorted.\n");
+			strcat(sendBuffer, "get 10       -- display the tenth element of array currently being sorted.\n");
+			strcat(sendBuffer, "stop         -- cause the server program to end.\n");
 			sendto(socket_descriptor,sendBuffer, strnlen(sendBuffer, PACKET_LEN),0,(struct sockaddr *) &sin,sin_len);
 		}
 		else if(strcmp(recvBuffer, COUNT) == 0)
 		{
 			sprintf(sendBuffer, "Number of arrays sorted = %lld. \n",Sorter_getNumberArraysSorted());
 			sendto(socket_descriptor,sendBuffer, strnlen(sendBuffer, PACKET_LEN),0,(struct sockaddr *) &sin,sin_len);
-		}
-		else if(strncmp(recvBuffer, GET_VALUE,4) == 0)
-		{
-			char *pch;
-			pch = strstr(recvBuffer," ");
-			int idx = atoi(pch);
-			if(idx < 1)
-			{
-				sprintf(sendBuffer, "Error: the range of value that are acceptable is between 1 and %d. \n", Sorter_getArrayLength());
-				sendto(socket_descriptor,sendBuffer, strnlen(sendBuffer, PACKET_LEN),0,(struct sockaddr *) &sin,sin_len);
-			}
-			else if(idx>Sorter_getArrayLength())
-			{
-				sprintf(sendBuffer, "Error: the range of value that are acceptable is between 1 and %d. \n", Sorter_getArrayLength());
-				sendto(socket_descriptor,sendBuffer, strnlen(sendBuffer, PACKET_LEN),0,(struct sockaddr *) &sin,sin_len);
-			}
-			else
-			{
-				sprintf(sendBuffer, "Value %d = %d \n", idx, *Sorter_getArrayData(&idx));
-				sendto(socket_descriptor,sendBuffer, strnlen(sendBuffer, PACKET_LEN),0,(struct sockaddr *) &sin,sin_len);
-			}
 		}
 		else if(strcmp(recvBuffer, GET_LENGTH) == 0)
 		{
@@ -138,6 +117,27 @@ void* udpListener(void* arg)
 			// free the data & output array
 			free(data);
 			free(array_serialized);
+		}
+		else if(strncmp(recvBuffer, GET_VALUE,4) == 0)
+		{
+			char *pch;
+			pch = strstr(recvBuffer," ");
+			int idx = atoi(pch);
+			if(idx < 1)
+			{
+				sprintf(sendBuffer, "Error: the range of value that are acceptable is between 1 and %d. \n", Sorter_getArrayLength());
+				sendto(socket_descriptor,sendBuffer, strnlen(sendBuffer, PACKET_LEN),0,(struct sockaddr *) &sin,sin_len);
+			}
+			else if(idx>Sorter_getArrayLength())
+			{
+				sprintf(sendBuffer, "Error: the range of value that are acceptable is between 1 and %d. \n", Sorter_getArrayLength());
+				sendto(socket_descriptor,sendBuffer, strnlen(sendBuffer, PACKET_LEN),0,(struct sockaddr *) &sin,sin_len);
+			}
+			else
+			{
+				sprintf(sendBuffer, "Value %d = %d \n", idx, *Sorter_getArrayData(&idx));
+				sendto(socket_descriptor,sendBuffer, strnlen(sendBuffer, PACKET_LEN),0,(struct sockaddr *) &sin,sin_len);
+			}
 		}
 		else if(strncmp(recvBuffer, STOP, strlen(STOP)) == 0)
 		{

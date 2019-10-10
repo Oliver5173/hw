@@ -77,11 +77,11 @@ void* udpListener(void* arg)
 		if(strcmp(recvBuffer, HELP) == 0)
 		{
 			sprintf(sendBuffer, "Accepted command examples:\n");
-			strcat(sendBuffer, "count        -- display number arrays sorted.\n");
-			strcat(sendBuffer, "get length   -- display length of array currently being sorted.\n");
-			strcat(sendBuffer, "get array    -- display the full array being sorted.\n");
-			strcat(sendBuffer, "get 10       -- display the tenth element of array currently being sorted.\n");
-			strcat(sendBuffer, "stop         -- cause the server program to end.\n");
+			strcat(sendBuffer, "count       -- display number arrays sorted.\n");
+			strcat(sendBuffer, "get length  -- display length of array currently being sorted.\n");
+			strcat(sendBuffer, "get array   -- display the full array being sorted.\n");
+			strcat(sendBuffer, "get 10      -- display the tenth element of array currently being sorted.\n");
+			strcat(sendBuffer, "stop        -- cause the server program to end.\n");
 			sendto(socket_descriptor,sendBuffer, strnlen(sendBuffer, PACKET_LEN),0,(struct sockaddr *) &sin,sin_len);
 		}
 		else if(strcmp(recvBuffer, COUNT) == 0)
@@ -157,4 +157,3 @@ void* udpListener(void* arg)
 	}
 	return 0;	
 }
-
